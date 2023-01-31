@@ -10,14 +10,28 @@ UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 
 
 
 UserInfoUrl = "https://jywg.eastmoneysec.com/Com/queryAssetAndPositionV1"
+PositionUrl = "https://jywg.eastmoneysec.com/Search/Position"
+
 StockInfoUrl = "https://hsmarketwg.eastmoney.com/api/SHSZQuoteSnapshot?id=600022&callback="
+
+
+def GetUrl_Trade(validatekey):
+    return "https://jywg.eastmoneysec.com/Trade/SubmitTradeV2?validatekey=%s"%(validatekey)
+
+def GetUrl_GetOrderData(validatekey):
+    return "https://jywg.eastmoneysec.com/Search/GetOrdersData?validatekey=%s"%(validatekey)
+
+def GetUrl_RevokeOrders(validatekey):
+    return "https://jywg.eastmoneysec.com/Trade/RevokeOrders?validatekey=%s"%(validatekey)
+
 # 得到股票的基本信息
 def GetUrl_StockInfo(stock_id):
     return "https://hsmarketwg.eastmoney.com/api/SHSZQuoteSnapshot?id=%s&callback="%(stock_id)
 
-# 得到股票的基本信息
-def GetUrl_BuyStock(stock_id):
-    return "https://jywg.eastmoneysec.com/Trade/SubmitTradeV2?validatekey=8ab67df8-4e3d-4c47-ab38-e8c993c20c6a"
+# # 得到股票的基本信息
+# def GetUrl_BuyStock(stock_id):
+#     return "https://jywg.eastmoneysec.com/Trade/SubmitTradeV2?validatekey=8ab67df8-4e3d-4c47-ab38-e8c993c20c6a"
+
 
 
 # 得到股票的历史价格走势
