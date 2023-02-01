@@ -18,11 +18,12 @@ class Trade(Action):
     __return_info = 0
 
     # action有三个状态 初始化完成->发送请求完成（服务器处理中）->服务器处理完成
-    def __init__(self, user, stock, trade_type, price=-1, timeout = 10, interval=1):
+    def __init__(self, user, stock, trade_type, amount, price=-1, timeout = 10, interval=1):
         self.__user = user
         self.__stock = stock
         self.__price = price
         self.__trade_type = trade_type
+        self.__amount = amount
         super().__init__(timeout = timeout,interval = interval)
 
     def request(self) -> int:
