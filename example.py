@@ -12,9 +12,9 @@ import time
 # price         下单价格，默认-1，即以当前市场价下单
 # timeout       超时时间，默认10s 超过超时时间的报价单将被撤回
 def fast_trade(user, stock, trade_type, amount, price = -1, timeout=10):
-    trade = Trade(stock=stock, user=user, trade_type=trade_type,price=price,timeout=timeout)
+    trade = Trade(stock=stock, user=user, amount=amount, trade_type=trade_type,price=price,timeout=timeout - 1)
     loop.add_obj(trade)
-    time.sleep(timeout)
+    time.sleep(timeout + 1)
     # loop.del_any(trade)
     if trade.status == trade.FINISHED:
         return 0
