@@ -1,10 +1,35 @@
 from action import Action
+from persistent_stack import PStack
 import interface
 import time
 import json
+
+# 通过PStack实现一个历史交易栈
+class OrderHistoty(PStack):
+    def __init__(self, stackname, redis_host='127.0.0.1', redis_port=6379) -> None:
+        super().__init__(stackname, redis_host, redis_port)
+    
+    def save_order(self, order_info):
+        self._push(order_info)
+    
+    def get_prev_order(self):
+        return self._get_top()
+
+    def pop_prev_order(self):
+        return self._pop()
+
+    # 返回最近一次交易的委托价格
+    def get_prev_delegate_price(self) -> float:
+        return float(self._get_top()["Wtjg"])
+
+    # 返回最近一次交易的成交数量
+    def get_prev_order_final_amount(self) -> int:
+        return int(self._get_top()["Cjsl"])
+
+    def get_len(self):
+        return self._get_len()
 # action是一次性的，action结束后就不会再update
 # action默认update时间为10周期
-
 class Trade(Action):
     __params = {
         "stockCode": "510050",
@@ -30,6 +55,7 @@ class Trade(Action):
         # try:
         self.__params["stockCode"] = self.__stock.stock_code
         self.__params["tradeType"] = self.__trade_type
+        self.__params["amount"] = self.__amount
         if self.__price == -1:
             self.__price = self.__stock.stock_info['realtimequote']['currentPrice']
         self.__params["price"] = self.__price
@@ -162,5 +188,4 @@ class Trade(Action):
         ret_json = interface.PostHtml(interface.GetUrl_RevokeOrders(self.__user.get_validatekey()),\
                                                                             cookies = self.__user.get_cookies(),\
                                                                             params=revoke_param)
-
         return 0
