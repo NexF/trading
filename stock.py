@@ -72,6 +72,8 @@ class Stock(UpdateObj):
         self.stock_info = json.loads(ret_json[1:-2])
         return 0
 
+    def get_current_price(self) -> float:
+        return float(self.stock_info['realtimequote']['currentPrice'])
 
     def update(self) -> int:
         self.get_info()
