@@ -90,7 +90,6 @@ class ExGridTrading(UpdateObj):
         return False
 
     def __is_on_grids(self, target_price:float) -> bool:
-        return True
         for price in self.__grids:
             if self.__is_price_equal(target_price, price):
                 return True
@@ -106,10 +105,13 @@ class ExGridTrading(UpdateObj):
     def fast_trade(self, trade_type, amount, price = -1, timeout=10):
 
         print("当前价格为%.3f, 触发网格自动交易，委托类型 %s, 委托数量 %d 股"%(price, trade_type, amount))
-        self.__trade = Trade(stock=self.__stock, user=self.__user, amount=amount, trade_type=trade_type, price=price, timeout=timeout - 1)
+        self.__trade = Trade(stock=self.__stock, user=self.__user, amount=amount, trade_type=trade_type, price=price, timeout=timeout)
         self.__loop.add_obj(self.__trade)
         time.sleep(timeout + 1)
-        print(self.__trade.status)
+        if self.__trade.status == self.__trade.FINISHED or \
+            self.__trade.status == self.__trade.OVERTIME:
+            self.__loop.del_any(self.__trade)
+
         return self.__trade.order_info
 
     # 判断当前价格适合买入还是卖出
