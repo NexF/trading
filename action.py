@@ -9,6 +9,7 @@ class Action(UpdateObj):
     IN_PROCESS  = 1
     FINISHED    = 2
     OVERTIME    = 3
+    ERROR       = 4
     def __init__(self, timeout = 100, interval = 10):
         super().__init__(interval)
         self.status = self.INITED       # 初始化完成
@@ -17,12 +18,16 @@ class Action(UpdateObj):
     def update(self) -> int:
         self.__used_time = self.__used_time + self.interval
         if self.status == self.INITED:
-            if self.request() == 0:     # 发送请求成功，则改变状态
+            ret = self.request()
+            if ret == 0:     # 发送请求成功，则改变状态
                 self.status = self.IN_PROCESS
+            else:
+                self.status = self.ERROR
+
         elif self.status == self.IN_PROCESS:
             if self.check_finished() == 0:  # 服务器处理完成，改变状态
                 self.status = self.FINISHED
-        if self.__used_time >= self.__timeout and self.status != self.OVERTIME:  # 超时
+        if self.__used_time >= self.__timeout and self.status != self.OVERTIME and self.status != self.ERROR:  # 超时
             self.status = self.OVERTIME
             self.overtimed()
 

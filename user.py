@@ -26,9 +26,9 @@ class User(UpdateObj):
 
 
             ret_json = interface.GetHtml(interface.UserInfoUrl, cookies = self.get_cookies())
-            finance_info = json.loads(ret_json)
+            self.finance_info = json.loads(ret_json)
         except:
             return -1
 
-        print(finance_info['Data'][0]['Kyzj'])
+        print(self.finance_info['Data'][0]['Kyzj'])
         return 0

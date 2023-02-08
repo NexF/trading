@@ -40,7 +40,7 @@ class Trade(Action):
         # "market": "HA",
     }
 
-    __return_info = 0
+    return_info = 0
 
     # action有三个状态 初始化完成->发送请求完成（服务器处理中）->服务器处理完成
     def __init__(self, user, stock, trade_type, amount, price=-1, timeout = 10, interval=1):
@@ -79,12 +79,11 @@ class Trade(Action):
         ret = json.loads(ret_json)
         # except:
         #     return -1
-        
+
+        self.return_info = ret
         # 如果请求成功，则保存该笔委托的信息
         if ret["Status"] == 0:
-            self.__return_info = ret
             return 0
-        
         return -100
 
     def check_finished(self) -> int:
@@ -174,7 +173,7 @@ class Trade(Action):
         """
         for order in ret['Data']:
             # 遍历返回值，找到此次交易的委托编号
-            if order['Wtph'] == self.__return_info['Data'][0]['Wtbh']:
+            if order['Wtph'] == self.return_info['Data'][0]['Wtbh']:
                 self.order_info = order
                 if int(order['Wtsl']) == order['Cjsl']:     # 如果委托数量等于成交数量则保存当前委托信息并返回0
                     return 0

@@ -4,17 +4,17 @@ example: 增强型网格交易
 
 以上证50etf(510050)为例
 ----------网格设置----------
-价值交易                        2.300-2.600
+价值交易                        < 2.600
 流动-价值混合交易                2.600-3.200
 流动交易                        3.200-3.800
 底仓清仓                        > 3.800
 
-网格密度                        0.7%
-交易佣金                        0.018%
-每格收益                        0.682%
+网格密度                        0.5%
+交易佣金                        0.018%*2
+每格收益                        0.464%
 
 流动-价值混合交易中价值交易量      100股
-每格交易量                      1200股
+每格交易量                      700股
 
 """
 
@@ -51,19 +51,19 @@ class ExGridTrading(UpdateObj):
 
         # 新建一个用户对象，并将其注册到循环中。loop会定时更新user的基本信息，并维持会话
         #  User(uuid) 这可以写到对象内，也可以写到外边
-        self.__user = User("03a0c6cb97664f89a8f0305389e42526")
+        self.__user = User("59ade4a6e8e748ee80d727c3fad83655")
         self.__loop.add_obj(self.__user)
         
         self.__stock = Stock("510050")
         self.__loop.add_obj(self.__stock)
 
-        self.__set_grids(2.3, 4.2, 1.007)
+        self.__set_grids(2.0, 5, 1.005)
 
         self.__price_A = 2.6        # 价值交易 和 价值-流动性交易的分界线
         self.__price_B = 3.2        # 价值-流动性交易 和 流动性交易的分界线
         self.__price_C = 3.8        # 流动性交易的终止线
 
-        self.__amount = 1200        # 单次网格买入股数
+        self.__amount = 700        # 单次网格买入股数
         self.__holding_amount = 100 # 底仓股数
 
         self.__trade = Action()
@@ -77,6 +77,7 @@ class ExGridTrading(UpdateObj):
         self.__grids = []
         
         while(buttom_price < top_price):
+            buttom_price = round(buttom_price*1000)/1000.0
             print("%.3f"%buttom_price)
             self.__grids.append(buttom_price)
             buttom_price = buttom_price*grid_density
@@ -89,12 +90,28 @@ class ExGridTrading(UpdateObj):
             return True
         return False
 
-    def __is_on_grids(self, target_price:float) -> bool:
-        for price in self.__grids:
-            if self.__is_price_equal(target_price, price):
-                return True
-
-        return False
+    def __get_nearest_grids(self, target_price:float):
+        price = []
+        for i in range(2, len(self.__grids)):
+            # 当target_price在self.__grids[i - 1] 和self.__grids[i] 之间
+            if target_price <= self.__grids[i]:
+                # 当target_price更靠近 self.__grids[i]
+                if self.__grids[i] - target_price < target_price - self.__grids[i - 1]:
+                    price.append(self.__grids[i - 1])
+                    price.append(self.__grids[i])
+                    price.append(self.__grids[i + 1])
+                # 当target_price更靠近 self.__grids[i - 1]
+                else:
+                    price.append(self.__grids[i - 2])
+                    price.append(self.__grids[i - 1])
+                    price.append(self.__grids[i])
+                
+                datetimenow = time.strftime("[%Y-%m-%d %H:%M:%S]", time.localtime())
+                print(datetimenow, price)
+                
+                return price
+        price = [1,1,1]
+        return price
 
     # 快速下单
     # stock         要交易的股票对象
@@ -108,31 +125,48 @@ class ExGridTrading(UpdateObj):
         self.__trade = Trade(stock=self.__stock, user=self.__user, amount=amount, trade_type=trade_type, price=price, timeout=timeout)
         self.__loop.add_obj(self.__trade)
         time.sleep(timeout + 1)
-        if self.__trade.status == self.__trade.FINISHED or \
-            self.__trade.status == self.__trade.OVERTIME:
+        if self.__trade.status != self.__trade.IN_PROCESS:
             self.__loop.del_any(self.__trade)
-
-        return self.__trade.order_info
+        if self.__trade.status == self.__trade.ERROR:
+            return -1
+        return 0
 
     # 判断当前价格适合买入还是卖出
     def buy_or_sell(self, price) -> str:
+        order = {"type":"N", "price":0.0}
+        print(f"当前价格：{price}")
         if self.__HoldingOrders.get_len() == 0:             # 当前没有持仓记录，买入
-            return "B"
-            
+            nearest_grids = self.__get_nearest_grids(price)
+            if price > nearest_grids[1]:
+                order["price"] = nearest_grids[2]
+            else:
+                order["price"] = nearest_grids[1]
+            order["type"] = "B"
+            return order
+
         prev_price = self.__HoldingOrders.get_prev_delegate_price()
-        if self.__is_price_equal(price, prev_price):      # 如果当前价格等于最后持仓的价格 则不操作 这里有一个bug，当部分成交的时候可能会亏损 问题应该不大
-            return "N"
-        elif price > prev_price:                            # 高于最后买入的价格，就将其平掉
-            return "S"
-        elif price < prev_price:                            # 低于最后买入的价格，就买入
-            return "B"
-        
+        nearest_grids = self.__get_nearest_grids(prev_price)
+        if price > nearest_grids[0] and price < nearest_grids[2]:        # 如果当前价格没有突破网格 则不操作 这里有一个bug，当部分成交的时候可能会亏损 问题应该不大
+            order["price"] = 0.0
+            order["type"] = "N"
+            return order
+        elif price >= nearest_grids[2]:                                        # 高于或等于最后买入的网格+1格，就将其平掉
+            order["price"] = nearest_grids[2]
+            order["type"] = "S"
+            return order
+        elif price <= nearest_grids[0]:                                        # 低于或等于最后买入的价格-1格，就买入
+            order["price"] = nearest_grids[0]
+            order["type"] = "B"
+            return order      
+
         # 理论上不存在此情况
-        return "N"
+        return order
 
     # 检查当前交易是否成功，如果成功，则保存交易信息
     def check_and_save_order(self):
         if int(self.__trade.order_info["Cjsl"]) > 0:      # 成交数量大于0, 表明有成功成交
+        # if int(self.__trade.order_info["Cjsl"]) >= 0:      # 成交数量大于0, 表明有成功成交 debug
+            
             if self.__trade.order_info["Mmlb"] == "B":      # 如果是买入 则直接入HoldingOrder栈
                 self.__HoldingOrders.save_order(self.__trade.order_info)
 
@@ -147,33 +181,54 @@ class ExGridTrading(UpdateObj):
             self.__OrderHistory.save_order(self.__trade.order_info)
 
     def update(self) -> int:
+        t = time.localtime(time.time())
+
+        # 判断是否在交易时间，不在交易时间直接return
+        if t.tm_hour < 9 or t.tm_hour > 14:
+            return 0
+        if t.tm_hour == 9 and t.tm_min < 30:
+            return 0
+
+
         cur_price = self.__stock.get_current_price()
-        if self.__is_on_grids(cur_price):       # 确认当前价格在网格点上
-            B_or_S = self.buy_or_sell(cur_price)    # 确定交易类别
-            if cur_price < self.__price_A:      # 价格在价值交易区间中 只买不卖
-                if B_or_S == "B":      # 买入
-                    self.fast_trade("B", self.__amount, cur_price)
+        # cur_price = 2.789
+        order = self.buy_or_sell(cur_price)    # 确定交易类别
+        B_or_S = order["type"]
+        grid_price = order["price"]        # 最接近网格点的价格
+        if cur_price < self.__price_A:      # 价格在价值交易区间中 只买不卖
+            if B_or_S == "B":      # 买入
+                if self.fast_trade("B", self.__amount, grid_price) == 0:
                     self.check_and_save_order()
-                elif B_or_S == "S":     # 只出栈，不做实际的卖出操作
-                    self.__HoldingOrders.pop_prev_order()
+                else:
+                    print("下单失败，错误原因：%s"%(self.__trade.return_info["Message"]))
+            elif B_or_S == "S":     # 只出栈，不做实际的卖出操作
+                self.__HoldingOrders.pop_prev_order()
 
-            elif cur_price < self.__price_B:    # 价格在价值-流动性交易区间中
-                if B_or_S == "B":      # 买入
-                    self.fast_trade("B", self.__amount, cur_price)
+        elif cur_price < self.__price_B:    # 价格在价值-流动性交易区间中
+            if B_or_S == "B":      # 买入
+                if self.fast_trade("B", self.__amount, grid_price) == 0:
                     self.check_and_save_order()
-                elif B_or_S == "S":     # 卖出一部分，保留底仓
-                    self.fast_trade("S", self.__amount - self.__holding_amount, cur_price)
+                else:
+                    print("下单失败，错误原因：%s"%(self.__trade.return_info["Message"]))
+            elif B_or_S == "S":     # 卖出一部分，保留底仓
+                if self.fast_trade("S", self.__amount - self.__holding_amount, grid_price) == 0:
                     self.check_and_save_order()
+                else:
+                    print("下单失败，错误原因：%s"%(self.__trade.return_info["Message"]))
 
-            elif cur_price < self.__price_C:    # 价格在流动性交易区间中
-                if B_or_S == "B":      # 买入
-                    self.fast_trade("B", self.__amount, cur_price)
+        elif cur_price < self.__price_C:    # 价格在流动性交易区间中
+            if B_or_S == "B":      # 买入
+                if self.fast_trade("B", self.__amount, grid_price) == 0:
                     self.check_and_save_order()
-                elif B_or_S == "S":     # 卖出
-                    self.fast_trade("S", self.__amount, cur_price)
+                else:
+                    print("下单失败，错误原因：%s"%(self.__trade.return_info["Message"]))
+            elif B_or_S == "S":     # 卖出
+                if self.fast_trade("S", self.__amount, grid_price) == 0:
                     self.check_and_save_order()
-            else:                               # 价格超出范围，不自动操作了，手动卖出吧
-                pass
+                else:
+                    print("下单失败，错误原因：%s"%(self.__trade.return_info["Message"]))
+        else:                               # 价格超出范围，不自动操作了，手动卖出吧
+            pass
             
         return 0
 
@@ -191,6 +246,7 @@ TradingS = ExGridTrading(loop)
 # 新建一个循环用于指标同步，这样交易可能存在延迟
 time.sleep(5)   # 等循环全部初始化
 while True:
+    
     TradingS.update()
     time.sleep(0.5)
 

@@ -12,10 +12,10 @@ class PStack:
         self.__client.lpush(self.__LIST_NAME, json.dumps(obj))
     
     def _pop(self):
-        return self.__client.lpop(self.__LIST_NAME)
+        return json.loads(self.__client.lpop(self.__LIST_NAME))
     
     def _get_top(self):
-        return self.__client.lindex(self.__LIST_NAME, 0)
+        return json.loads(self.__client.lindex(self.__LIST_NAME, 0))
 
     def _get_len(self):
         return self.__client.llen(self.__LIST_NAME)

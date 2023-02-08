@@ -9,7 +9,7 @@ loop.setDaemon(True)        # 主线程结束以后子线程也退出
 loop.start()
 
 print("main thread\n")
-user = User("fdece11ad6eb4c0abe085ae9b5daa3a6")
+user = User("eac060faf4004ac1a12e54604fa6f0a5")
 user_id = loop.add_obj(user)
 
 ret_json = interface.PostHtml(interface.GetUrl_GetOrderData(user.get_validatekey()),\
