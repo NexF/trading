@@ -1,7 +1,7 @@
 import asyncio
 import json
 from pyppeteer import launch
-
+import logging
 import ddddocr
 """
 初次安装pypeteer需要安装chromium依赖，可以看看
@@ -28,7 +28,7 @@ async def auto_login(user, passwd):
     with open("yzm.png", 'rb') as f:                        # 读取验证码，进行ocr
         image = f.read()
     res = ocr.classification(image)
-    print(res)
+    logging.info(f'验证码识别结果：{res}')
 
     await page.type('#txtValidCode', res)                   # 输入ocr得到的验证码
 
@@ -38,8 +38,10 @@ async def auto_login(user, passwd):
     
 
     if page.url != url:
+        logging.warning('登录成功')
         ret = await page.cookies()
     else:
+        logging.warning('登录失败，可能是验证码识别错误')
         ret = -1
 
     await browser.close()

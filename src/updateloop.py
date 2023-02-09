@@ -43,7 +43,8 @@ class UpdateLoop(Thread):
             if last_loop_time + self.interval <= time.time():
                 last_loop_time = time.time()
                 self.__loop()
-        
+    
+    # TODO：采用异步方式实现
     def __loop(self):
         # 处理pure_obj list()防止循环的时候被修改
         for pure_obj in list(self.pure_Update.values()):
