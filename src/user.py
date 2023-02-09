@@ -1,6 +1,7 @@
 from updateobj import UpdateObj
 import interface
 import json
+from auto_login import login
 from lxml import etree
 
 class User(UpdateObj):
@@ -8,6 +9,30 @@ class User(UpdateObj):
         self.__uuid = uuid
         self.update()                   # 在最开始就update一次，防止最开始交易失败
         super().__init__(interval)
+
+    def __init__(self, user, passwd, interval = 10):
+
+        self.__user = user
+        self.__passwd = passwd
+
+        self.refresh_cookies()
+
+        self.update()                   # 在最开始就update一次，防止最开始交易失败
+        super().__init__(interval)
+
+    def refresh_cookies(self):
+        try:
+            cookies = -1
+            # 轮询直到获得cookie
+            while cookies == -1:
+                cookies = login(user=self.__user, passwd=self.__passwd)
+
+            for item in cookies:
+                if item['name'] == 'Uuid':
+                    self.__uuid = item['value']
+                    break
+        except AttributeError as e:
+            pass
 
     def get_cookies(self):
         cookies = {
