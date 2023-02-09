@@ -1,3 +1,6 @@
+import sys
+sys.path.append('./src')
+
 from updateloop import UpdateLoop
 from user import User
 from stock import Stock
@@ -30,7 +33,8 @@ print("main thread\n")
 
 # 新建一个用户对象，并将其注册到循环中。loop会定时更新user的基本信息，并维持会话
 #  User(uuid)
-user = User("ec524d177aee40fe8c4afdd968566579")
+# user = User("ec524d177aee40fe8c4afdd968566579")
+user = User('540860216117', '689067')
 user_id = loop.add_obj(user)
 
 # 新建一个股票对象，并将其注册到循环中，loop会定时更新股票的基本信息，如当前价格，成交量等
