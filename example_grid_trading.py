@@ -19,7 +19,7 @@ example: 增强型网格交易
 """
 
 import sys
-sys.path.append('../src')
+sys.path.append('./src')
 
 from updateloop import UpdateLoop
 from updateobj import UpdateObj
@@ -54,7 +54,7 @@ class ExGridTrading(UpdateObj):
 
         # 新建一个用户对象，并将其注册到循环中。loop会定时更新user的基本信息，并维持会话
         #  User(uuid) 这可以写到对象内，也可以写到外边
-        self.__user = User("c6d4ac9b82704a68a797ce2b0fe5a140")
+        self.__user = User('540860216117', '689067')
         self.__loop.add_obj(self.__user)
         
         self.__stock = Stock("510050")

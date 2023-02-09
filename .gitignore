@@ -1,3 +1,5 @@
-/__pycache__
+**/__pycache__
 *.tar
-/.vscode
+**/.vscode
+
+src/__pycache__/**

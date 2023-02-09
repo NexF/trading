@@ -1,8 +1,8 @@
-from updateobj import UpdateObj
-import interface
-import json
+import updateobj import UpdateObj
 from auto_login import login
 from lxml import etree
+import interface
+import json
 
 class User(UpdateObj):
     def __init__(self, uuid, interval = 10):
@@ -45,13 +45,14 @@ class User(UpdateObj):
     def update(self) -> int:
         try:
             # 获取交易时需要的validatekey
+            ret_json = interface.GetHtml(interface.UserInfoUrl, cookies = self.get_cookies())
+            self.finance_info = json.loads(ret_json)
             ret_html = interface.GetHtml(interface.PositionUrl, cookies = self.get_cookies())
             doc = etree.HTML(ret_html)
             self.__validatekey = doc.xpath('//*[@id="em_validatekey"]/@value')[0]
-
-
-            ret_json = interface.GetHtml(interface.UserInfoUrl, cookies = self.get_cookies())
-            self.finance_info = json.loads(ret_json)
+        except json.decoder.JSONDecodeError as e:       # 如果登录状态失败
+            self.refresh_cookies()
+            return -101
         except:
             return -1
 
