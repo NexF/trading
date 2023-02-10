@@ -18,7 +18,7 @@ example: 增强型网格交易
 
 """
 
-import sys
+import sys,os,time
 sys.path.append('./src')
 
 import logging
@@ -28,7 +28,6 @@ from user import User
 from stock import Stock
 from trade import Trade, OrderHistoty, Action
 
-import time
 
 
 # # 快速下单
@@ -229,6 +228,16 @@ class ExGridTrading(UpdateObj):
 
 
 if __name__ == "__main__":
+
+    # 从父进程fork一个子进程出来
+    pid = os.fork()
+    # 子进程的pid一定为0，父进程大于0
+    if pid:
+        # 退出父进程，sys.exit()方法比os._exit()方法会多执行一些刷新缓冲工作
+        sys.exit(0)
+
+
+    os.rename(sys.argv[0] + '.log', sys.argv[0] + '.log.old')
     logging.basicConfig(filename=sys.argv[0] + '.log', level=logging.INFO, format='%(asctime)s|%(levelname)s|%(filename)s|%(funcName)s():%(lineno)d|%(message)s')
     # 新建一个主事件循环，每一秒更新一次
     loop = UpdateLoop(interval=1)
