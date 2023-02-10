@@ -21,6 +21,7 @@ example: 增强型网格交易
 import sys
 sys.path.append('./src')
 
+import logging
 from updateloop import UpdateLoop
 from updateobj import UpdateObj
 from user import User
@@ -81,7 +82,7 @@ class ExGridTrading(UpdateObj):
         
         while(buttom_price < top_price):
             buttom_price = round(buttom_price*1000)/1000.0
-            print("%.3f"%buttom_price)
+            logging.info("网格价:%.3f"%buttom_price)
             self.__grids.append(buttom_price)
             buttom_price = buttom_price*grid_density
 
@@ -109,8 +110,7 @@ class ExGridTrading(UpdateObj):
                     price.append(self.__grids[i - 1])
                     price.append(self.__grids[i])
                 
-                datetimenow = time.strftime("[%Y-%m-%d %H:%M:%S]", time.localtime())
-                print(datetimenow, price)
+                logging.info(f"当前最接近的网格为：{price}")
                 
                 return price
         price = [1,1,1]
@@ -124,20 +124,21 @@ class ExGridTrading(UpdateObj):
     # timeout       超时时间，默认10s 超过超时时间的报价单将被撤回
     def fast_trade(self, trade_type, amount, price = -1, timeout=10):
 
-        print("当前价格为%.3f, 触发网格自动交易，委托类型 %s, 委托数量 %d 股"%(price, trade_type, amount))
+        logging.warning("当前价格为%.3f, 触发网格自动交易，委托类型 %s, 委托数量 %d 股"%(price, trade_type, amount))
         self.__trade = Trade(stock=self.__stock, user=self.__user, amount=amount, trade_type=trade_type, price=price, timeout=timeout)
         self.__loop.add_obj(self.__trade)
         time.sleep(timeout + 1)
         if self.__trade.status != self.__trade.IN_PROCESS:
             self.__loop.del_any(self.__trade)
         if self.__trade.status == self.__trade.ERROR:
+            logging.error("下单失败，错误原因：%s"%(self.__trade.return_info["Message"]))
             return -1
         return 0
 
     # 判断当前价格适合买入还是卖出
     def buy_or_sell(self, price) -> str:
         order = {"type":"N", "price":0.0}
-        print(f"当前价格：{price}")
+        logging.info(f"当前价格：{price}")
         if self.__HoldingOrders.get_len() == 0:             # 当前没有持仓记录，买入
             nearest_grids = self.__get_nearest_grids(price)
             if price > nearest_grids[1]:
@@ -202,8 +203,6 @@ class ExGridTrading(UpdateObj):
             if B_or_S == "B":      # 买入
                 if self.fast_trade("B", self.__amount, grid_price) == 0:
                     self.check_and_save_order()
-                else:
-                    print("下单失败，错误原因：%s"%(self.__trade.return_info["Message"]))
             elif B_or_S == "S":     # 只出栈，不做实际的卖出操作
                 self.__HoldingOrders.pop_prev_order()
 
@@ -211,25 +210,17 @@ class ExGridTrading(UpdateObj):
             if B_or_S == "B":      # 买入
                 if self.fast_trade("B", self.__amount, grid_price) == 0:
                     self.check_and_save_order()
-                else:
-                    print("下单失败，错误原因：%s"%(self.__trade.return_info["Message"]))
             elif B_or_S == "S":     # 卖出一部分，保留底仓
                 if self.fast_trade("S", self.__amount - self.__holding_amount, grid_price) == 0:
                     self.check_and_save_order()
-                else:
-                    print("下单失败，错误原因：%s"%(self.__trade.return_info["Message"]))
 
         elif cur_price < self.__price_C:    # 价格在流动性交易区间中
             if B_or_S == "B":      # 买入
                 if self.fast_trade("B", self.__amount, grid_price) == 0:
                     self.check_and_save_order()
-                else:
-                    print("下单失败，错误原因：%s"%(self.__trade.return_info["Message"]))
             elif B_or_S == "S":     # 卖出
                 if self.fast_trade("S", self.__amount, grid_price) == 0:
                     self.check_and_save_order()
-                else:
-                    print("下单失败，错误原因：%s"%(self.__trade.return_info["Message"]))
         else:                               # 价格超出范围，不自动操作了，手动卖出吧
             pass
             
@@ -237,20 +228,21 @@ class ExGridTrading(UpdateObj):
 
 
 
+if __name__ == "__main__":
+    logging.basicConfig(filename=sys.argv[0] + '.log', level=logging.INFO, format='%(asctime)s|%(levelname)s|%(filename)s|%(funcName)s():%(lineno)d|%(message)s')
+    # 新建一个主事件循环，每一秒更新一次
+    loop = UpdateLoop(interval=1)
+    loop.setDaemon(True)                # 主线程结束以后子线程也退出
+    loop.start()
 
-# 新建一个主事件循环，每一秒更新一次
-loop = UpdateLoop(interval=1)
-loop.setDaemon(True)        # 主线程结束以后子线程也退出
-loop.start()
+    TradingS = ExGridTrading(loop)
+    # loop.add_target(TradingS)         # 将网格策略直接作为指标添加到主循环里，这样交易延迟更短，目前下单存在bug
 
-TradingS = ExGridTrading(loop)
-# loop.add_target(TradingS)   # 将网格策略直接作为指标添加到主循环里，这样交易延迟更短，目前下单存在bug
+    # 新建一个循环用于指标同步，这样交易可能存在延迟
+    time.sleep(5)   # 等循环全部初始化
+    while True:
+        
+        TradingS.update()
+        time.sleep(0.5)
 
-# 新建一个循环用于指标同步，这样交易可能存在延迟
-time.sleep(5)   # 等循环全部初始化
-while True:
-    
-    TradingS.update()
-    time.sleep(0.5)
-
-time.sleep(60*60*24*365*10) # 永久运行下去
+    time.sleep(60*60*24*365*10) # 永久运行下去

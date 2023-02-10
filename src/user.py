@@ -1,8 +1,10 @@
-import updateobj import UpdateObj
+from updateobj import UpdateObj
 from auto_login import login
 from lxml import etree
 import interface
 import json
+import logging
+
 
 class User(UpdateObj):
     def __init__(self, uuid, interval = 10):
@@ -56,5 +58,5 @@ class User(UpdateObj):
         except:
             return -1
 
-        print(self.finance_info['Data'][0]['Kyzj'])
+        logging.info(f"当前账户可用资金：{self.finance_info['Data'][0]['Kyzj']}")
         return 0
