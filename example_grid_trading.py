@@ -110,7 +110,7 @@ class ExGridTrading(UpdateObj):
                     price.append(self.__grids[i - 1])
                     price.append(self.__grids[i])
                 
-                logging.INFO("当前最接近的网格为：",price)
+                logging.info(f"当前最接近的网格为：{price}")
                 
                 return price
         price = [1,1,1]
@@ -124,21 +124,21 @@ class ExGridTrading(UpdateObj):
     # timeout       超时时间，默认10s 超过超时时间的报价单将被撤回
     def fast_trade(self, trade_type, amount, price = -1, timeout=10):
 
-        logging.WARNING("当前价格为%.3f, 触发网格自动交易，委托类型 %s, 委托数量 %d 股"%(price, trade_type, amount))
+        logging.warning("当前价格为%.3f, 触发网格自动交易，委托类型 %s, 委托数量 %d 股"%(price, trade_type, amount))
         self.__trade = Trade(stock=self.__stock, user=self.__user, amount=amount, trade_type=trade_type, price=price, timeout=timeout)
         self.__loop.add_obj(self.__trade)
         time.sleep(timeout + 1)
         if self.__trade.status != self.__trade.IN_PROCESS:
             self.__loop.del_any(self.__trade)
         if self.__trade.status == self.__trade.ERROR:
-            logging.ERROR("下单失败，错误原因：%s"%(self.__trade.return_info["Message"]))
+            logging.error("下单失败，错误原因：%s"%(self.__trade.return_info["Message"]))
             return -1
         return 0
 
     # 判断当前价格适合买入还是卖出
     def buy_or_sell(self, price) -> str:
         order = {"type":"N", "price":0.0}
-        logging.INFO(f"当前价格：{price}")
+        logging.info(f"当前价格：{price}")
         if self.__HoldingOrders.get_len() == 0:             # 当前没有持仓记录，买入
             nearest_grids = self.__get_nearest_grids(price)
             if price > nearest_grids[1]:
