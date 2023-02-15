@@ -17,10 +17,13 @@ example: 增强型网格交易
 每格交易量                      700股
 
 """
+import pdb_attach
+pdb_attach.listen(50000)  # Listen on port 50000.
 
 import sys,os,time
 sys.path.append('./src')
 
+from configparser import ConfigParser
 import logging
 from updateloop import UpdateLoop
 from updateobj import UpdateObj
@@ -44,7 +47,7 @@ from trade import Trade, OrderHistoty, Action
 
 
 class ExGridTrading(UpdateObj):
-    def __init__(self, loop:UpdateLoop, interval=1) -> None:
+    def __init__(self, loop:UpdateLoop, user:User, stock:Stock, interval=1) -> None:
         self.__loop = loop
         # 新建一个OriderHistory对象，存储历史交易记录
         self.__OrderHistory = OrderHistoty("ExGridTrading_Order_nexchen")
@@ -54,10 +57,10 @@ class ExGridTrading(UpdateObj):
 
         # 新建一个用户对象，并将其注册到循环中。loop会定时更新user的基本信息，并维持会话
         #  User(uuid) 这可以写到对象内，也可以写到外边
-        self.__user = User('540860216117', '689067')
+        self.__user = user
         self.__loop.add_obj(self.__user)
         
-        self.__stock = Stock("510050")
+        self.__stock = stock
         self.__loop.add_obj(self.__stock)
 
         self.__set_grids(2.0, 5, 1.005)
@@ -229,22 +232,34 @@ class ExGridTrading(UpdateObj):
 
 if __name__ == "__main__":
 
-    # 从父进程fork一个子进程出来
-    pid = os.fork()
-    # 子进程的pid一定为0，父进程大于0
-    if pid:
-        # 退出父进程，sys.exit()方法比os._exit()方法会多执行一些刷新缓冲工作
-        sys.exit(0)
+    # # 从父进程fork一个子进程出来
+    # pid = os.fork()
+    # # 子进程的pid一定为0，父进程大于0
+    # if pid:
+    #     # 退出父进程，sys.exit()方法比os._exit()方法会多执行一些刷新缓冲工作
+    #     sys.exit(0)
 
+    conf = ConfigParser()
+    conf.read("trading.cfg", encoding='utf-8')
+    sections=dict(conf.items('login_info'))
+    username = sections['user']
+    passwd = sections['passwd']
 
     os.rename(sys.argv[0] + '.log', sys.argv[0] + '.log.old')
     logging.basicConfig(filename=sys.argv[0] + '.log', level=logging.INFO, format='%(asctime)s|%(levelname)s|%(filename)s|%(funcName)s():%(lineno)d|%(message)s')
+    
+    
     # 新建一个主事件循环，每一秒更新一次
     loop = UpdateLoop(interval=1)
     loop.setDaemon(True)                # 主线程结束以后子线程也退出
     loop.start()
 
-    TradingS = ExGridTrading(loop)
+    # 新建一个用户对象，并将其注册到循环中。loop会定时更新user的基本信息，并维持会话
+    #  User(uuid) 这可以写到对象内，也可以写到外边
+    user = User(username, passwd)
+    stock = Stock("510050")
+    TradingS = ExGridTrading(loop, user=user, stock=stock)
+
     # loop.add_target(TradingS)         # 将网格策略直接作为指标添加到主循环里，这样交易延迟更短，目前下单存在bug
 
     # 新建一个循环用于指标同步，这样交易可能存在延迟

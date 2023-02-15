@@ -15,6 +15,8 @@ PositionUrl = "https://jywg.eastmoneysec.com/Search/Position"
 StockInfoUrl = "https://hsmarketwg.eastmoney.com/api/SHSZQuoteSnapshot?id=600022&callback="
 
 
+history_tick_data = "https://flashdata2.jrj.com.cn/history/js/index/000001/min_js_2021/000001_20211231.js"
+
 def GetUrl_Trade(validatekey):
     return "https://jywg.eastmoneysec.com/Trade/SubmitTradeV2?validatekey=%s"%(validatekey)
 
