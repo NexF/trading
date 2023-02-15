@@ -2,5 +2,7 @@
 *.tar
 /.vscode
 /src/__pycache__/*
-
+/FinD/**
 *.log*
+*.csv*
+**/*.png
