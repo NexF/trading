@@ -5,8 +5,8 @@ from threading  import Thread, Lock
 from typing     import Dict
 
 class UpdateLoop(Thread):
-    target_update : Dict = dict()    # 保存一些指标信息
-    pure_Update : Dict = dict()      # 保存一些纯需要更新的维度，比如股价、账户余额等
+    service_update : Dict = dict()    # 保存一些指标信息
+    obj_Update : Dict = dict()      # 保存一些纯需要更新的维度，比如股价、账户余额等
 
     def __init__(self, interval = 1) -> int:
         self.interval = interval            # 单位 秒
@@ -15,22 +15,22 @@ class UpdateLoop(Thread):
         super().__init__()
 
     def add_obj(self, obj : UpdateObj):
-        self.pure_Update[self.obj_idx] = obj
+        self.obj_Update[self.obj_idx] = obj
         obj.loop_idx = self.obj_idx
         self.obj_idx = self.obj_idx + 1
         return self.obj_idx - 1
 
-    def add_target(self, target : UpdateObj):
-        self.target_update[self.obj_idx] = target
+    def add_service(self, target : UpdateObj):
+        self.service_update[self.obj_idx] = target
         target.loop_idx = self.obj_idx
         self.obj_idx = self.obj_idx + 1
         return self.obj_idx - 1
 
     def del_any_idx(self, idx):
-        if idx in self.pure_Update:
-            self.pure_Update.pop(idx)
-        elif idx in self.target_update:
-            self.target_update.pop(idx)
+        if idx in self.obj_Update:
+            self.obj_Update.pop(idx)
+        elif idx in self.service_update:
+            self.service_update.pop(idx)
 
 
     def del_any(self, obj : UpdateObj):
@@ -47,7 +47,7 @@ class UpdateLoop(Thread):
     # TODO：采用异步方式实现
     def __loop(self):
         # 处理pure_obj list()防止循环的时候被修改
-        for pure_obj in list(self.pure_Update.values()):
+        for pure_obj in list(self.obj_Update.values()):
             if self.__loop_counts % pure_obj.interval != 0:
                 continue
             
@@ -56,11 +56,11 @@ class UpdateLoop(Thread):
                 continue
 
         # 再处理target_obj，因为target可能依赖于pureobj
-        for target_obj in list(self.target_update.values()):
-            if self.__loop_counts % target_obj.interval != 0:
+        for service_obj in list(self.service_update.values()):
+            if self.__loop_counts % service_obj.interval != 0:
                 continue
 
-            if target_obj.update() != 0:
+            if service_obj.update() != 0:
                 # 错误处理
                 continue
 

@@ -232,12 +232,12 @@ class ExGridTrading(UpdateObj):
 
 if __name__ == "__main__":
 
-    # # 从父进程fork一个子进程出来
-    # pid = os.fork()
-    # # 子进程的pid一定为0，父进程大于0
-    # if pid:
-    #     # 退出父进程，sys.exit()方法比os._exit()方法会多执行一些刷新缓冲工作
-    #     sys.exit(0)
+    # 从父进程fork一个子进程出来
+    pid = os.fork()
+    # 子进程的pid一定为0，父进程大于0
+    if pid:
+        # 退出父进程，sys.exit()方法比os._exit()方法会多执行一些刷新缓冲工作
+        sys.exit(0)
 
     conf = ConfigParser()
     conf.read("trading.cfg", encoding='utf-8')
