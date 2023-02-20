@@ -239,16 +239,20 @@ if __name__ == "__main__":
         # 退出父进程，sys.exit()方法比os._exit()方法会多执行一些刷新缓冲工作
         sys.exit(0)
 
-    conf = ConfigParser()
-    conf.read("trading.cfg", encoding='utf-8')
-    sections=dict(conf.items('login_info'))
-    username = sections['user']
-    passwd = sections['passwd']
+
 
     os.rename(sys.argv[0] + '.log', sys.argv[0] + '.log.old')
     logging.basicConfig(filename=sys.argv[0] + '.log', level=logging.INFO, format='%(asctime)s|%(levelname)s|%(filename)s|%(funcName)s():%(lineno)d|%(message)s')
-    
-    
+    try:
+        conf = ConfigParser()
+        conf.read("trading.cfg", encoding='utf-8')
+        sections=dict(conf.items('login_info'))
+        username = sections['user']
+        passwd = sections['passwd']
+    except:
+        logging.exception("读取config文件失败，请检查")
+        exit
+        
     # 新建一个主事件循环，每一秒更新一次
     loop = UpdateLoop(interval=1)
     loop.setDaemon(True)                # 主线程结束以后子线程也退出

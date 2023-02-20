@@ -1,6 +1,7 @@
 from updateobj import UpdateObj
 import interface
 import json
+import logging
 
 class Stock(UpdateObj):
     def __init__(self, stock_code, interval = 1):
@@ -76,6 +77,9 @@ class Stock(UpdateObj):
         return float(self.stock_info['realtimequote']['currentPrice'])
 
     def update(self) -> int:
-        self.get_info()
+        try:
+            self.get_info()
+        except:
+            logging.exception("获取stock信息失败")
         
         return 0

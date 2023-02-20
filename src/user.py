@@ -113,9 +113,11 @@ class User(UpdateObj):
             doc = etree.HTML(ret_html)
             self.__validatekey = doc.xpath('//*[@id="em_validatekey"]/@value')[0]
         except json.decoder.JSONDecodeError as e:       # 如果登录状态失败
+            logging.exception(f"{e.msg}")
             self.refresh_cookies()
             return -101
         except:
+            logging.exception(f"更新用户信息失败")
             return -1
 
         logging.info(f"当前账户可用资金：{self.finance_info['Data'][0]['Kyzj']}，总资产：{self.finance_info['Data'][0]['Zzc']}")
